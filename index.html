@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoundScope: Advanced Audio Visualizer</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" type="image/png" href="image/logo.png" sizes="32x32" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="min-h-screen p-4 sm:p-8 flex flex-col items-center">
+
+  <!-- Header -->
+  <header class="w-full max-w-6xl mb-8 flex justify-between items-center">
+    <div class="flex items-center space-x-3">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round"
+           class="text-blue-400 w-6 h-6">
+        <path d="M9 18V5l-2 1v12"/>
+        <path d="M15 15V5l-2 1v9"/>
+        <path d="M3 3v18"/>
+        <path d="M21 3v18"/>
+      </svg>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Sound<span class="text-blue-400">Scope</span></h1>
+        <p class="text-xs text-gray-400">Advanced Audio Visualizer</p>
+      </div>
+    </div>
+    <button class="text-gray-400 hover:text-gray-200 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 16v-4"/>
+        <path d="M12 8h.01"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Visualizer Canvas + Overlay -->
+  <div class="w-full max-w-6xl mb-8 relative">
+    <canvas id="visualizer-canvas" class="rounded-xl block w-full h-64 sm:h-80"></canvas>
+    <div id="overlay"
+         class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-white bg-black/70 rounded-xl transition-opacity duration-500 z-10">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round"
+           class="w-8 h-8 text-blue-400 mb-2">
+        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 14.5a1.5 1.5 0 1 1 1.5-1.5 1.5 1.5 0 0 1-1.5 1.5zM12 8v4"/>
+      </svg>
+      <p class="text-xl font-semibold mb-2" id="overlay-text">
+        Please load an audio file to begin the visualization.
+      </p>
+    </div>
+  </div>
+
+  <!-- File Input -->
+  <div class="controls mt-4 p-4 bg-gray-800 rounded-xl shadow-md w-full max-w-6xl">
+    <input type="file" id="audio-file" accept="audio/*" class="w-full" />
+  </div>
+
+  <!-- Controls Section -->
+  <div class="w-full max-w-6xl flex flex-col lg:flex-row gap-8 mt-8">
+
+    <!-- Left: Visualization Controls -->
+    <div class="glass-card p-6 lg:p-8 flex-1">
+      <h2 class="text-xl font-semibold mb-6 text-blue-300">Visualization Controls</h2>
+
+      <div class="mb-8">
+        <label class="block text-sm font-medium mb-2 text-gray-400"><b>Visualization Mode:</b></label>
+        <div class="flex items-center justify-between space-x-2">
+          <button id="mode-waveform"
+                  class="gradient-bg text-white font-medium py-2 px-4 rounded-full text-sm shadow-lg hover:shadow-xl transition duration-300">
+            Waveform
+          </button>
+          <button id="mode-spectrum"
+                  class="bg-gray-700/50 text-gray-300 font-medium py-2 px-4 rounded-full text-sm hover:bg-gray-600/50 transition duration-300">
+            Spectrum
+          </button>
+          <button id="mode-spectrogram"
+                  class="bg-gray-700/50 text-gray-300 font-medium py-2 px-4 rounded-full text-sm hover:bg-gray-600/50 transition duration-300"
+                  disabled title="Not yet implemented">
+            Spectrogram 
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
+        <div class="w-full min-w-0">
+          <div class="flex justify-between items-baseline mb-2 text-sm">
+            <label for="sensitivity-slider" class="font-medium text-gray-400">Sensitivity</label>
+            <span id="sensitivity-value" class="text-blue-400 font-mono">0.5x</span>
+          </div>
+          <input type="range" id="sensitivity-slider"
+                 min="0.1" max="2.0" value="0.5" step="0.1"
+                 class="w-full h-3 sm:h-2 rounded-lg appearance-none cursor-pointer" />
+        </div>
+
+        <div class="w-full min-w-0">
+          <div class="flex justify-between items-baseline mb-2 text-sm">
+            <label for="line-width-slider" class="font-medium text-gray-400">Line Width</label>
+            <span id="line-width-value" class="text-blue-400 font-mono">4px</span>
+          </div>
+          <input type="range" id="line-width-slider"
+                 min="1" max="10" value="4" step="1"
+                 class="w-full h-3 sm:h-2 rounded-lg appearance-none cursor-pointer" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-10">
+        <div class="w-full min-w-0">
+          <label for="fft-size" class="block text-sm font-medium mb-2 text-gray-400">FFT Size</label>
+          <select id="fft-size"
+                  class="w-full bg-gray-700/50 border border-gray-600/50 rounded-lg py-2 px-3 text-white transition focus:ring-blue-500 focus:border-blue-500">
+            <option value="2048">2048 (1024 bins)</option>
+            <option value="4096" selected>4096 (2048 bins)</option>
+            <option value="8192">8192 (4096 bins)</option>
+          </select>
+        </div>
+
+        <div class="w-full min-w-0">
+          <div class="flex justify-between items-baseline mb-2 text-sm">
+            <label for="smoothing-slider" class="font-medium text-gray-400">Smoothing</label>
+            <span id="smoothing-value" class="text-blue-400 font-mono">0.95</span>
+          </div>
+          <input type="range" id="smoothing-slider"
+                 min="0.0" max="1.0" value="0.95" step="0.01"
+                 class="w-full h-3 sm:h-2 rounded-lg appearance-none cursor-pointer" />
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button id="download-btn"
+                class="gradient-bg w-full text-white font-bold py-3 px-6 rounded-xl text-lg transition duration-300 hover:opacity-90 shadow-lg hover:shadow-2xl hover:shadow-blue-500/50 disabled:opacity-50"
+                disabled>
+                <span class="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download Snapshot
+              </span>
+        </button>
+        <!-- Not yet implemented -->
+
+
+      </div>
+    </div>
+
+    <!-- Right: Media / Playback Controls -->
+    <div class="glass-card p-6 lg:w-80 flex flex-col justify-between space-y-6">
+      <div class="flex justify-center">
+        <button id="play-pause-btn" class="media-btn" disabled>
+          <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+               viewBox="0 0 24 24" fill="currentColor"
+               class="w-8 h-8 hidden">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+               viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex justify-between text-sm font-medium">
+          <span id="current-time" class="text-white">00:00</span>
+          <span id="total-time" class="text-gray-400">00:00</span>
+        </div>
+        <input type="range" id="progress-slider"
+               min="0" max="100" value="0" step="0.1"
+               class="w-full h-3 sm:h-2 rounded-lg appearance-none cursor-pointer" />
+        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider">Progress</label>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex justify-between text-sm font-medium">
+          <label for="volume-slider" class="text-gray-400">VOLUME</label>
+          <span id="volume-value" class="text-white">100%</span>
+        </div>
+        <input type="range" id="volume-slider"
+               min="0" max="100" value="100" step="1"
+               class="w-full h-3 sm:h-2 rounded-lg appearance-none cursor-pointer" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden audio element -->
+  <audio id="audio-source" hidden></audio>
+
+  <!-- (Optional) Firebase scripts as before -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    let app, db, auth;
+    try {
+      if (Object.keys(firebaseConfig).length > 0) {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        setLogLevel('Debug');
+        if (initialAuthToken) {
+          signInWithCustomToken(auth, initialAuthToken)
+            .catch((error) => {
+              console.error("Firebase Custom Token Sign-in Failed:", error);
+              signInAnonymously(auth);
+            });
+        } else {
+          signInAnonymously(auth);
+        }
+      } else {
+        console.warn("Firebase config not available. Running without persistence.");
+      }
+    } catch (e) {
+      console.error("Failed to initialize Firebase:", e);
+    }
+
+
+    
+  </script>
+
+
+
+
+
+
+  <!-- Core Visualizer Script -->
+  <script src="script.js"></script>
+
+
+</body>
+</html>
