@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundScope - Advanced Audio Visualizer</title>
+    <link rel="shortcut icon" href="image/logo.png" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="text-white p-4 md:p-6 lg:p-8">
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400 w-6 h-6"><path d="M9 18V5l-2 1v12"/><path d="M15 15V5l-2 1v9"/><path d="M3 3v18"/><path d="M21 3v18"/></svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">Sound<span class="text-blue-400">Scope</span></h1>
+                <p class="text-xs text-gray-400">Advanced Audio Visualizer</p>
+            </div>
+        </div>
+        <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:bg-white/10 transition-colors">
+            <a href="https://github.com/anshusingha125/SoundScope" target="_blank"><i data-lucide="info" class="w-5 h-5"></i></a>
+            <!-- <i data-lucide="info" class="w-5 h-5"></i> -->
+        </button>
+    </header>
+
+    <!-- Main Visualizer -->
+    <div class="visualizer-container mb-6" style="height: 300px;">
+        <canvas id="visualizerCanvas" class="w-full h-full block"></canvas>
+        <div id="lyricsView" class="lyrics-container hidden absolute inset-0">
+            <div id="lyricsContent" class="flex flex-col justify-center min-h-full">
+                <p class="text-gray-500 italic">Upload a song to see lyrics...</p>
+            </div>
+        </div>
+        
+        <!-- Overlay when no audio -->
+        <div id="noAudioOverlay" class="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div class="text-center">
+                <i data-lucide="music" class="w-16 h-16 mx-auto mb-4 text-violet-400 pulse-glow"></i>
+                <p class="text-lg text-gray-300">Choose a file to start visualizing</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Input -->
+    <div class="glass-panel rounded-2xl p-4 mb-6">
+        <div class="file-input-wrapper flex items-center gap-3">
+            <label class="cursor-pointer">
+                <input type="file" id="audioFile" accept="audio/*">
+                <span class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors inline-block">
+                    Choose File
+                </span>
+            </label>
+            <span id="fileName" class="text-sm text-gray-400 truncate">No file chosen</span>
+        </div>
+    </div>
+
+    <!-- Controls Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Visualization Controls -->
+        <div class="glass-panel rounded-2xl p-5 lg:col-span-2">
+            <h3 class="text-xl font-semibold mb-6 text-blue-300">Visualization Controls</h3>
+            
+            <!-- Mode Selection -->
+            <div class="mb-5">
+                <p class="block text-sm font-medium mb-2 text-gray-400">Visualization Mode:</p>
+                <div class="flex items-center justify-between space-x-2">
+                    <button class="mode-btn active px-4 py-2 rounded-full text-sm font-medium bg-gray-700" data-mode="waveform">
+                        Waveform
+                    </button>
+                    <button class="mode-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-700" data-mode="spectrum">
+                        Spectrum
+                    </button>
+                    <button class="mode-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-700" data-mode="lyrics">
+                        Lyrics
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sliders Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                <!-- Sensitivity -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs text-gray-400">Sensitivity</span>
+                        <span id="sensitivityValue" class="text-xs text-violet-400">0.8</span>
+                    </div>
+                    <input type="range" id="sensitivity" class="control-slider w-full" min="0.1" max="2" step="0.1" value="0.8">
+                </div>
+                
+                <!-- Line Width -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs text-gray-400">Line Width</span>
+                        <span id="lineWidthValue" class="text-xs text-violet-400">2</span>
+                    </div>
+                    <input type="range" id="lineWidth" class="control-slider w-full" min="1" max="10" step="0.5" value="2">
+                </div>
+                
+                <!-- FFT Size -->
+                <div>
+                    <span class="text-xs text-gray-400 block mb-2">FFT Size</span>
+                    <select id="fftSize" class="w-full px-3 py-2 bg-gray-800 rounded-lg text-sm border border-gray-700 focus:border-violet-500 outline-none">
+                        <option value="1024">1024 (512 bins)</option>
+                        <option value="2048" selected>2048 (1024 bins)</option>
+                        <option value="4096">4096 (2048 bins)</option>
+                        <option value="8192">8192 (4096 bins)</option>
+                    </select>
+                </div>
+                
+                <!-- Smoothing -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs text-gray-400">Smoothing</span>
+                        <span id="smoothingValue" class="text-xs text-violet-400">0.85</span>
+                    </div>
+                    <input type="range" id="smoothing" class="control-slider w-full" min="0" max="0.99" step="0.01" value="0.85">
+                </div>
+            </div>
+
+            <!-- Download Button -->
+            <button id="downloadSnapshot" class="download-btn w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2">
+                <!-- <i data-lucide="download" class="w-4 h-4"></i> -->
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Snapshot
+            </button>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="glass-panel rounded-2xl p-5">
+            <!-- Play/Pause -->
+            <div class="flex justify-center mb-6">
+                <button id="playPauseBtn" class="play-btn">
+                    <i data-lucide="play" class="w-8 h-8 ml-1" id="playIcon"></i>
+                    <i data-lucide="pause" class="w-8 h-8 hidden" id="pauseIcon"></i>
+                </button>
+            </div>
+
+            <!-- Progress -->
+            <div class="mb-5">
+                <div class="flex justify-between text-xs mb-2">
+                    <span id="currentTime" class="text-gray-300">00:00</span>
+                    <span id="duration" class="text-gray-400">00:00</span>
+                </div>
+                <input type="range" id="progress" class="control-slider w-full" min="0" max="100" value="0">
+                <p class="text-xs text-gray-500 mt-1 text-center">PROGRESS</p>
+            </div>
+
+            <!-- Volume -->
+            <div>
+                <div class="flex justify-between text-xs mb-2">
+                    <span class="text-gray-500">VOLUME</span>
+                    <span id="volumeValue" class="text-violet-400">100%</span>
+                </div>
+                <input type="range" id="volume" class="control-slider w-full" min="0" max="100" value="100">
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="container">
+        <div class="para">
+            Made with <span class="heart">❤️</span> by <a href="https://instagram.com/anshusingha29" target="_blank"> Developer Anshu </a>
+        </div>
+    </div>
+
+    <!-- Hidden Audio Element -->
+    <audio id="audioElement" crossorigin="anonymous"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
